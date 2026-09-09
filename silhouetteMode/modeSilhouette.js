@@ -3,6 +3,7 @@ import { silhouetteCharacters as originalCharacters } from "./database/silhouett
 import { portraitsMapSilhouette as portraitsMap } from "./database/portraitsMapSilhouette.js";
 import { personas } from "./database/persona.js";
 import { updateProfileStats } from "../profile/profileStats.js";
+import { api } from "../js/api.js";
 
 // Shared game utilities
 import {
@@ -14,7 +15,8 @@ import {
   showWrongMini,
   buildGameSession,
   savePendingSession,
-  getDailyTarget,
+  parisDateKey,
+  getPlayerSeedId,
   showChallengeButton,
   showCommunityStats,
   applyDarkModeOverrides,
@@ -114,6 +116,13 @@ let currentPickToken = 0; // Anti-race-condition token for image preloading
 // URL de l'image NON noircie, révélée seulement en fin de partie. Tant qu'elle
 // n'est pas posée sur l'élément, l'originale n'existe nulle part dans le DOM.
 let revealSrc = null;
+// null (défi-entre-amis, cible déjà connue localement, comparaison client
+// comme avant) ; 'daily' (cible du jour, api/game/silhouette-*.php) ; 'replay'
+// (api/game/start.php + api/game/guess.php, game_id ci-dessous). Dans les deux
+// derniers cas le client ne connaît la cible qu'après victoire/abandon.
+let serverMode = null;
+// game_id renvoyé par /api/game/start — uniquement pertinent quand serverMode === 'replay'.
+let currentGameId = null;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DOM ELEMENT REFERENCES (safe to resolve at module scope since module loads
@@ -218,6 +227,164 @@ function triggerFlash() {
 }
 
 /**
+ * Charge la silhouette d'un `target` déjà connu localement (Replay, défi) :
+ * noircissement client (js/silhouette_mask.js), comportement inchangé.
+ */
+function loadLocalSilhouette(myToken) {
+  const tempImage = new Image();
+  tempImage.onload = () => {
+    if (myToken !== currentPickToken) return;
+    revealSrc = tempImage.src;
+    silhouetteImg.src = blackenToDataURL(tempImage) ?? tempImage.src;
+    silhouetteImg.alt = "Silhouette";
+    silhouetteImg.style.visibility = "visible";
+    silhouetteImg.style.transition = "transform 0.3s ease-out";
+    setLoading(false);
+  };
+  tempImage.onerror = () => {
+    if (myToken !== currentPickToken) return;
+    console.error(`❌ Image not found for ${target.nom}`);
+    setLoading(false);
+  };
+  tempImage.src = `./database/img/${encodeURIComponent(target.image)}.webp`;
+}
+
+/**
+ * Charge la silhouette du jour depuis api/game/silhouette-image.php — déjà
+ * noircie côté serveur, sans jamais révéler le nom du personnage au client.
+ */
+function loadServerSilhouette(myToken) {
+  const url = api.game.silhouetteImageUrl({
+    isExpert: EXPERT.isExpert,
+    playedDate: parisDateKey(),
+    seedId: getPlayerSeedId(),
+  });
+
+  const tempImage = new Image();
+  tempImage.onload = () => {
+    if (myToken !== currentPickToken) return;
+    silhouetteImg.src = tempImage.src;
+    silhouetteImg.alt = "Silhouette";
+    silhouetteImg.style.visibility = "visible";
+    silhouetteImg.style.transition = "transform 0.3s ease-out";
+    setLoading(false);
+  };
+  tempImage.onerror = () => {
+    if (myToken !== currentPickToken) return;
+    console.error("❌ Failed to load today's silhouette from the server.");
+    setLoading(false);
+  };
+  tempImage.src = url;
+}
+
+/**
+ * Démarre une partie Replay server-authoritative (api/game/start.php) puis
+ * charge son image (api/game/image.php) — la cible n'est jamais connue du
+ * client tant qu'il n'a pas gagné ou abandonné.
+ */
+async function loadReplaySilhouette(myToken) {
+  let gameId;
+  try {
+    const res = await api.game.start({
+      mode: "silhouette",
+      isExpert: EXPERT.isExpert,
+      origin: "replay",
+      activeFilters,
+    });
+    gameId = res.game_id;
+  } catch (e) {
+    if (myToken !== currentPickToken) return;
+    console.error("❌ Failed to start replay game:", e);
+    setLoading(false);
+    return;
+  }
+  if (myToken !== currentPickToken) return;
+
+  currentGameId = gameId;
+  localStorage.setItem(EXPERT.key("silhouetteGameId"), String(gameId));
+
+  const tempImage = new Image();
+  tempImage.onload = () => {
+    if (myToken !== currentPickToken) return;
+    silhouetteImg.src = tempImage.src;
+    silhouetteImg.alt = "Silhouette";
+    silhouetteImg.style.visibility = "visible";
+    silhouetteImg.style.transition = "transform 0.3s ease-out";
+    setLoading(false);
+  };
+  tempImage.onerror = () => {
+    if (myToken !== currentPickToken) return;
+    console.error("❌ Failed to load replay silhouette from the server.");
+    setLoading(false);
+  };
+  tempImage.src = api.game.imageUrl({ gameId });
+}
+
+/**
+ * Envoie une tentative à /api/game/guess pour la partie Replay en cours.
+ * Résout `target` depuis le dataset local une fois la partie terminée
+ * (gagnée ou abandonnée) — le serveur ne renvoie `target_name` qu'alors.
+ */
+async function checkGuessReplay(guess) {
+  const res = await api.game.guess({ gameId: currentGameId, guess });
+  if (res.finished) {
+    target = originalCharacters.find((c) => c.nom === res.target_name) || {
+      nom: res.target_name,
+      image: null,
+    };
+    localStorage.setItem(EXPERT.key("silhouetteTarget"), JSON.stringify(target));
+  }
+  return res.correct;
+}
+
+/** Abandon en Replay server-authoritative : demande la révélation de la cible. */
+async function revealReplay() {
+  const res = await api.game.guess({ gameId: currentGameId, reveal: true });
+  target = originalCharacters.find((c) => c.nom === res.target_name) || {
+    nom: res.target_name,
+    image: null,
+  };
+  localStorage.setItem(EXPERT.key("silhouetteTarget"), JSON.stringify(target));
+}
+
+/**
+ * Demande au serveur si `guess` est la cible du jour. Ne révèle `target_name`
+ * que si la réponse est correcte — résout alors `target` depuis le dataset
+ * local (même personnage, même image, juste retrouvé par son nom).
+ */
+async function checkGuessServer(guess) {
+  const res = await api.game.silhouetteGuess({
+    isExpert: EXPERT.isExpert,
+    playedDate: parisDateKey(),
+    seedId: getPlayerSeedId(),
+    guess,
+  });
+  if (res.correct) {
+    target = originalCharacters.find((c) => c.nom === res.target_name) || {
+      nom: res.target_name,
+      image: null,
+    };
+    localStorage.setItem(EXPERT.key("silhouetteTarget"), JSON.stringify(target));
+  }
+  return res.correct;
+}
+
+/** Abandon en mode serveur : demande la révélation de la cible du jour. */
+async function revealServer() {
+  const res = await api.game.silhouetteGuess({
+    isExpert: EXPERT.isExpert,
+    playedDate: parisDateKey(),
+    seedId: getPlayerSeedId(),
+    reveal: true,
+  });
+  target = originalCharacters.find((c) => c.nom === res.target_name) || {
+    nom: res.target_name,
+    image: null,
+  };
+  localStorage.setItem(EXPERT.key("silhouetteTarget"), JSON.stringify(target));
+}
+
+/**
  * Picks a random character (avoiding the last 5) and loads their silhouette.
  * Uses a token to cancel in-flight loads if pickCharacter() is called again.
  */
@@ -235,17 +402,13 @@ function pickCharacter(random = false) {
     ? originalCharacters.find((c) => c.nom === _challengeTargetName)
     : null;
 
+  serverMode = _challengeChar ? null : random ? "replay" : "daily";
+  currentGameId = null;
+
   if (_challengeChar) {
     target = _challengeChar;
-  } else if (random) {
-    const _prev = target;
-    const _candidates =
-      filteredCharacters.length > 1 && _prev
-        ? filteredCharacters.filter((c) => c.nom !== _prev.nom)
-        : filteredCharacters;
-    target = _candidates[Math.floor(Math.random() * _candidates.length)] || filteredCharacters[0];
   } else {
-    target = getDailyTarget(originalCharacters, EXPERT.hashMode);
+    target = null;
   }
 
   currentZoom = INITIAL_ZOOM;
@@ -270,30 +433,20 @@ function pickCharacter(random = false) {
 
   const myToken = ++currentPickToken;
 
-  const tempImage = new Image();
-  tempImage.onload = () => {
-    if (myToken !== currentPickToken) return; // superseded by a newer pick
-    // Anti-triche : c'est la version noircie DANS SES PIXELS qui entre dans le
-    // DOM, jamais l'originale — sinon « clic droit → Copier l'image » rend le
-    // personnage à deviner (cf. js/silhouette_mask.js). L'originale est gardée
-    // de côté pour la révélation de fin de partie.
-    revealSrc = tempImage.src;
-    silhouetteImg.src = blackenToDataURL(tempImage) ?? tempImage.src;
-    silhouetteImg.alt = "Silhouette";
-    silhouetteImg.style.visibility = "visible";
-    silhouetteImg.style.transition = "transform 0.3s ease-out";
-    setLoading(false);
-  };
-  tempImage.onerror = () => {
-    if (myToken !== currentPickToken) return;
-    console.error(`❌ Image not found for ${target.nom}`);
-    // Le voile doit tomber même sur échec, sinon il tourne indéfiniment sur une
-    // boîte qui ne recevra jamais d'image.
-    setLoading(false);
-  };
-  tempImage.src = `./database/img/${encodeURIComponent(target.image)}.webp`;
+  if (serverMode === "replay") {
+    loadReplaySilhouette(myToken);
+  } else if (serverMode === "daily") {
+    loadServerSilhouette(myToken);
+  } else {
+    loadLocalSilhouette(myToken);
+  }
 
-  localStorage.setItem(EXPERT.key("silhouetteTarget"), JSON.stringify(target));
+  localStorage.setItem(EXPERT.key("silhouetteServerMode"), serverMode ?? "");
+  localStorage.removeItem(EXPERT.key("silhouetteGameId"));
+  localStorage.setItem(
+    EXPERT.key("silhouetteTarget"),
+    serverMode ? "" : JSON.stringify(target)
+  );
   localStorage.setItem(EXPERT.key("silhouetteAttempts"), attempts);
   localStorage.setItem(EXPERT.key("silhouetteGameOver"), "false");
 }
@@ -490,7 +643,10 @@ function showVictory(force = false) {
   const wasChallengePlay = isChallengePlay("silhouette");
 
   if (!force) {
-    if (!isGameLogged(STATS_SCOPE) && !wasChallengePlay) {
+    // Replay : le serveur a déjà écrit session + stats + streak dans le même
+    // appel que la vérification de la tentative (api/lib/game_state.php::
+    // personadle_game_state_guess()) — l'écrire aussi ici les compterait deux fois.
+    if (serverMode !== "replay" && !isGameLogged(STATS_SCOPE) && !wasChallengePlay) {
       const timeSpent = Math.floor((Date.now() - sessionStartTime) / 1000);
       if (!EXPERT.isExpert) updateProfileStats({ result: "win", mode: modeName, timeSpent });
       savePendingSession(
@@ -583,16 +739,35 @@ function showWrong(name) {
 // GAME FLOW
 // ─────────────────────────────────────────────────────────────────────────────
 
+let guessInFlight = false;
+
 /**
  * Processes one guess:
  *  - Increments attempt counter and updates the give-up counter
  *  - On correct: calls showVictory()
  *  - On wrong: calls showWrong() and zooms out the silhouette
  */
-function handleGuess() {
-  if (gameOver) return;
+async function handleGuess() {
+  if (gameOver || guessInFlight) return;
   const guess = textbar.value.trim().toLowerCase();
   if (!guess) return;
+
+  guessInFlight = true;
+  let isCorrect;
+  try {
+    if (serverMode === "replay") {
+      isCorrect = await checkGuessReplay(guess);
+    } else if (serverMode === "daily") {
+      isCorrect = await checkGuessServer(guess);
+    } else {
+      isCorrect = guess === target.nom.toLowerCase();
+    }
+  } catch (e) {
+    console.error("Silhouette guess check failed:", e);
+    guessInFlight = false;
+    return;
+  }
+  guessInFlight = false;
 
   attempts++;
   localStorage.setItem(EXPERT.key("silhouetteAttempts"), attempts);
@@ -603,7 +778,7 @@ function handleGuess() {
     giveUpCounter.classList.add("activated");
   }
 
-  if (guess === target.nom.toLowerCase()) {
+  if (isCorrect) {
     showVictory();
   } else if (EXPERT.isExpert) {
     // Expert : pas de dézoom (image jamais affichée durablement) — l'erreur
@@ -628,8 +803,24 @@ function handleGuess() {
  * Give Up: reveals the answer and logs a giveup stat.
  * Only active after `maxAttempts` wrong guesses.
  */
-function giveUp() {
+async function giveUp() {
   if (attempts < maxAttempts || gameOver) return;
+
+  if (serverMode === "replay") {
+    try {
+      await revealReplay();
+    } catch (e) {
+      console.error("Silhouette reveal failed:", e);
+      return;
+    }
+  } else if (serverMode === "daily") {
+    try {
+      await revealServer();
+    } catch (e) {
+      console.error("Silhouette reveal failed:", e);
+      return;
+    }
+  }
 
   // Stats logged AVANT showVictory(true) — celle-ci appelle checkBadgesAfterGame() en
   // interne (fin de showVictory()) : si on l'appelait avant d'écrire stats.giveups ici,
@@ -638,7 +829,9 @@ function giveUp() {
   // Défi à cible dédiée : le give-up compte pour le défi (perdu) mais ne se
   // logge pas en session quotidienne (showVictory(true) transmet la défaite
   // au défi via checkChallengeCompletion).
-  if (!isGameLogged(STATS_SCOPE) && !isChallengePlay("silhouette")) {
+  // Replay : même raison que showVictory() — le serveur a déjà écrit la
+  // session/les stats dans revealReplay() ci-dessus.
+  if (serverMode !== "replay" && !isGameLogged(STATS_SCOPE) && !isChallengePlay("silhouette")) {
     const timeSpent = Math.floor((Date.now() - sessionStartTime) / 1000);
     if (!EXPERT.isExpert) updateProfileStats({ result: "giveup", mode: modeName, timeSpent });
     savePendingSession(
@@ -725,6 +918,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   resetBtn.addEventListener("click", () => {
     localStorage.removeItem(EXPERT.key("silhouetteTarget"));
+    localStorage.removeItem(EXPERT.key("silhouetteServerMode"));
+    localStorage.removeItem(EXPERT.key("silhouetteGameId"));
     localStorage.removeItem(EXPERT.key("silhouetteAttempts"));
     localStorage.removeItem(EXPERT.key("silhouetteGameOver"));
     startGame(STATS_SCOPE);
@@ -740,11 +935,67 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ── Restore session ──
   const stored = localStorage.getItem(EXPERT.key("silhouetteTarget"));
+  const storedServerMode = localStorage.getItem(EXPERT.key("silhouetteServerMode")) || null;
+  const storedGameId = parseInt(localStorage.getItem(EXPERT.key("silhouetteGameId"))) || null;
   const storedAttempts = parseInt(localStorage.getItem(EXPERT.key("silhouetteAttempts"))) || 0;
   const storedGameOver = localStorage.getItem(EXPERT.key("silhouetteGameOver")) === "true";
 
-  if (stored) {
+  const resumeInProgressServerGame = (mode) => {
+    serverMode = mode;
+    target = null;
+    filteredCharacters = getFilteredCharacters();
+    attempts = storedAttempts;
+    currentZoom = EXPERT.isExpert
+      ? INITIAL_ZOOM
+      : Math.max(maxZoomOut, INITIAL_ZOOM - 0.2 * storedAttempts);
+
+    if (EXPERT.isExpert) {
+      const savedFlashes = localStorage.getItem(EXPERT.key("silhouetteFlashes"));
+      flashCredits = savedFlashes === null ? 1 : parseInt(savedFlashes, 10) || 0;
+      setFlashVisible(false);
+    }
+
+    setLoading(true);
+    silhouetteImg.style.visibility = "hidden";
+    silhouetteImg.style.transition = "none";
+    silhouetteImg.style.transform = `scale(${currentZoom})`;
+    silhouetteImg.alt = "Silhouette";
+    silhouetteImg.style.filter = "brightness(0)";
+
+    if (mode === "replay") {
+      currentGameId = storedGameId;
+      const myToken = ++currentPickToken;
+      const tempImage = new Image();
+      tempImage.onload = () => {
+        if (myToken !== currentPickToken) return;
+        silhouetteImg.src = tempImage.src;
+        silhouetteImg.style.visibility = "visible";
+        silhouetteImg.style.transition = "transform 0.3s ease-out";
+        setLoading(false);
+      };
+      tempImage.onerror = () => {
+        if (myToken !== currentPickToken) return;
+        setLoading(false);
+      };
+      tempImage.src = api.game.imageUrl({ gameId: storedGameId });
+    } else {
+      loadServerSilhouette(++currentPickToken);
+    }
+
+    giveUpCounter.textContent = `(${attempts} / ${maxAttempts})`;
+    if (attempts >= maxAttempts) {
+      setGiveUpEnabled(true);
+      giveUpCounter.classList.add("activated");
+    }
+  };
+
+  if (!stored && storedServerMode === "replay" && storedGameId && !storedGameOver) {
+    resumeInProgressServerGame("replay");
+  } else if (!stored && storedServerMode === "daily" && !storedGameOver) {
+    resumeInProgressServerGame("daily");
+  } else if (stored) {
     try {
+      serverMode = storedServerMode;
       target = JSON.parse(stored);
       filteredCharacters = getFilteredCharacters();
       currentZoom = EXPERT.isExpert

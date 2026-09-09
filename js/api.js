@@ -556,6 +556,75 @@ export const api = {
      */
     unlock: (titleSlug) => post("/titles/unlock", { title_slug: titleSlug }),
   },
+
+  // ── Game (logique anti-triche côté serveur) ────────────
+  game: {
+    /**
+     * URL de la silhouette du jour, déjà noircie côté serveur — le nom du
+     * personnage ne transite jamais vers le client. À poser directement en
+     * `<img src>` : les cookies de session partent avec (même origine).
+     *
+     * @param {{isExpert: boolean, playedDate: string, seedId: string}} opts
+     * @returns {string}
+     */
+    silhouetteImageUrl: ({ isExpert, playedDate, seedId }) => {
+      const params = new URLSearchParams({
+        is_expert: isExpert ? "1" : "0",
+        played_date: playedDate,
+        anon_id: seedId,
+      });
+      return `${BASE_URL}/game/silhouette-image?${params}`;
+    },
+
+    /**
+     * Vérifie une tentative Silhouette côté serveur — le client ne connaît
+     * jamais la bonne réponse tant qu'il n'a pas gagné (ou abandonné).
+     *
+     * @param {{isExpert: boolean, playedDate: string, seedId: string, guess?: string, reveal?: boolean}} opts
+     * @returns {Promise<{correct: boolean, target_name?: string, revealed?: boolean}>}
+     */
+    silhouetteGuess: ({ isExpert, playedDate, seedId, guess, reveal }) =>
+      post("/game/silhouette-guess", {
+        is_expert: isExpert,
+        played_date: playedDate,
+        anon_id: seedId,
+        guess,
+        reveal,
+      }),
+
+    /**
+     * Démarre une partie server-authoritative — le serveur choisit la cible,
+     * le client ne reçoit qu'un `game_id`. Fonctionne aussi sans compte
+     * (identité invité tenue côté serveur).
+     *
+     * @param {{mode: string, isExpert: boolean, origin: 'daily'|'replay'|'challenge', activeFilters?: string[]}} opts
+     * @returns {Promise<{game_id: number}>}
+     */
+    start: ({ mode, isExpert, origin, activeFilters = [] }) =>
+      post("/game/start", {
+        mode,
+        is_expert: isExpert,
+        origin,
+        active_filters: activeFilters,
+      }),
+
+    /**
+     * Vérifie une tentative sur une partie démarrée via `start()`. Le serveur
+     * compte les tentatives et décide seul du résultat ; sur une partie
+     * connectée déjà terminée par cet appel, il écrit stats/streak lui-même.
+     *
+     * @param {{gameId: number, guess?: string, reveal?: boolean}} opts
+     * @returns {Promise<{correct: boolean, finished: boolean, target_name?: string, attempts: number, stats?: object, global_streak?: number}>}
+     */
+    guess: ({ gameId, guess, reveal }) => post("/game/guess", { game_id: gameId, guess, reveal }),
+
+    /**
+     * URL de l'image (déjà noircie) associée à une partie `start()`ée.
+     * @param {{gameId: number}} opts
+     * @returns {string}
+     */
+    imageUrl: ({ gameId }) => `${BASE_URL}/game/image?${new URLSearchParams({ game_id: gameId })}`,
+  },
 };
 
 // Exposer l'API globalement pour que gameCore.js puisse l'utiliser
