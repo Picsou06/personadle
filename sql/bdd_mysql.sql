@@ -32,6 +32,7 @@ DROP TABLE IF EXISTS friendships;
 DROP TABLE IF EXISTS event_codes_redeemed;
 DROP TABLE IF EXISTS badges_unlocked;
 DROP TABLE IF EXISTS badges;
+DROP TABLE IF EXISTS game_states;
 DROP TABLE IF EXISTS game_sessions;
 DROP TABLE IF EXISTS user_stats;
 DROP TABLE IF EXISTS user_titles;
@@ -243,6 +244,35 @@ CREATE INDEX idx_game_sessions_date      ON game_sessions(played_date);
 CREATE INDEX idx_game_sessions_target    ON game_sessions(mode, played_date, target_name);
 CREATE INDEX idx_game_sessions_user_mode_expert ON game_sessions(user_id, mode, is_expert);
 CREATE INDEX idx_session_per_day ON game_sessions(user_id, mode, played_date, is_expert);
+
+-- =============================================================================
+-- 6b. GAME_STATES — machine à états serveur pour une partie EN COURS
+-- (migration 040 ; game_sessions reste l'historique des parties TERMINÉES)
+-- =============================================================================
+CREATE TABLE game_states (
+    id               BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    user_id          BIGINT UNSIGNED NULL,
+    guest_id         CHAR(32)        NULL,
+    mode             VARCHAR(30)     NOT NULL,
+    is_expert        TINYINT(1)      NOT NULL DEFAULT 0,
+    played_date      DATE            NOT NULL,
+    target_name      VARCHAR(200)    NOT NULL,
+    origin           ENUM('daily', 'replay', 'challenge') NOT NULL,
+    challenge_msg_id BIGINT UNSIGNED NULL,
+    active_filters   TEXT            NULL,
+    attempts         INT UNSIGNED    NOT NULL DEFAULT 0,
+    started_at       TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    finished_at      TIMESTAMP       NULL,
+    result           ENUM('win', 'giveup') NULL,
+
+    PRIMARY KEY (id),
+    CONSTRAINT chk_game_states_owner CHECK (user_id IS NOT NULL OR guest_id IS NOT NULL),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (challenge_msg_id) REFERENCES messages(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE INDEX idx_game_states_user  ON game_states(user_id, mode, is_expert, finished_at);
+CREATE INDEX idx_game_states_guest ON game_states(guest_id, mode, is_expert, finished_at);
 
 
 -- =============================================================================
