@@ -49,7 +49,11 @@ const opusByName = Object.fromEntries(aoaCharacters.map((c) => [c.nom, c.opus]))
 const pools = {
   classic: { pool: characters.map((c) => c.nom) },
   emoji: { pool: characters.filter((c) => c.emoji).map((c) => c.nom) },
-  silhouette: { pool: silhouetteCharacters.map((c) => c.nom) },
+  silhouette: {
+    pool: silhouetteCharacters.map((c) => c.nom),
+    images: Object.fromEntries(silhouetteCharacters.map((c) => [c.nom, c.image])),
+    opusByName: Object.fromEntries(silhouetteCharacters.map((c) => [c.nom, c.opus])),
+  },
   music: { pool: songs.map((s) => s.titre) },
   // ── Pools Mode Expert ──────────────────────────────────────────────────────
   // Tous ont une clé de hash distincte de leur mode normal : le tirage doit être

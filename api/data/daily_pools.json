@@ -541,7 +541,712 @@
       "Koromaru (P4AU)",
       "Mitsuru Kirijo (P4AU)",
       "Yukari Takeba (P4AU)"
-    ]
+    ],
+    "images": {
+      "Tohru Adachi": "Adachi_silhouette",
+      "Ai Ebihara": "Ai_silhouette",
+      "Aigis": "Aigis_silhouette",
+      "Akihiko Sanada": "Akihiko_silhouette",
+      "Ann Takamaki": "Ann_silhouette",
+      "Ayane Matsunaga": "Ayane_silhouette",
+      "Bebe": "Bebe_silhouette",
+      "Bunkichi": "Bunkichi_silhouette",
+      "Caroline & Justine": "Caroline_and_Justine_silhouette",
+      "Chidori Yoshino": "Chidori_silhouette",
+      "Chie Satonaka": "Chie_silhouette",
+      "Chihaya Mifune": "Chihaya_silhouette",
+      "Chihiro Fushimi": "Chihiro_silhouette",
+      "Daisuke Nagase": "Daisuke_silhouette",
+      "Ryotaro Dojima": "Dojima_silhouette",
+      "Mr. Edogawa": "Edgoawa_silhouette",
+      "Elizabeth": "Elizabeth_silhouette",
+      "Eri Minami": "Eri_silhouette",
+      "Fox": "Fox_silhouette",
+      "Futaba Sakura": "Futaba_silhouette",
+      "Fuuka Yamagishi": "Fuuka_silhouette",
+      "Goro Akechi": "Goro_silhouette",
+      "Haru Okumura": "Haru_silhouette",
+      "Hatsune Miku": "Hatsune_Miku_silhouette",
+      "Mamoru Hayase": "Hayase_silhouette",
+      "Hidetoshi Odagiri": "Hidetoshi_silhouette",
+      "Hifumi Togo": "Hifumi_silhouette",
+      "Hisano Kuroda": "Hisano_silhouette",
+      "Ichiko Ohya": "Ohya_silhouette",
+      "Igor": "Igor_silhouette",
+      "Shuji Ikutsuki": "Ikutsuki_silhouette",
+      "Munehisa Iwai": "Iwai_silhouette",
+      "Jin Shirato": "Jin_silhouette",
+      "Jose": "Jose_silhouette",
+      "Junpei Iori": "Junpei_silhouette",
+      "Kanji Tatsumi": "Kanji_silhouette",
+      "Kazushi Miyamoto": "Kazushi_silhouette",
+      "Keisuke Hiraga": "Keisuke_silhouette",
+      "Ken Amada": "Ken_silhouette",
+      "Kenji Tomochika": "Kenji_silhouette",
+      "Koromaru": "Koromaru_silhouette",
+      "Kotone Shiomi": "Kotone_silhouette",
+      "Kou Ichijo": "Kou_silhouette",
+      "Labrys": "Labrys_silhouette",
+      "Lavenza": "Lavenza_silhouette",
+      "Maiko Oohashi": "Maiko_silhouette",
+      "Makoto Niijima": "Makoto_silhouette",
+      "Margaret": "Margaret_silhouette",
+      "Marie": "Marie_silhouette",
+      "Maya": "Maya_silhouette",
+      "Metis": "Metis_silhouette",
+      "Yuuki Mishima": "Mishima_silhouette",
+      "Mitsuko": "Mitsuko_silhouette",
+      "Mitsuru Kirijo": "Mitsuru_silhouette",
+      "Morgana": "Morgana_silhouette",
+      "Mutatsu": "Mutatsu_silhouette",
+      "Nanako Dojima": "Nanako_silhouette",
+      "Naoki Konishi": "Naoki_silhouette",
+      "Naoto Shirogane": "Naoto_silhouette",
+      "Nozomi Suemitsu": "Nozomi_silhouette",
+      "Pharos": "Pharos_silhouette",
+      "Ren Amamiya": "Ren_silhouette",
+      "Rio Iwasaki": "Rio_silhouette",
+      "Rise Kujikawa": "Rise_silhouette",
+      "Ryoji Mochizuki": "Ryoji_silhouette",
+      "Ryuji Sakamoto": "Ryuji_silhouette",
+      "Sadayo Kawakami": "Kawakami_silhouette",
+      "Sae Niijima": "Sae_silhouette",
+      "Saori Hasegawa": "Saori_silhouette",
+      "Sayako Uehara": "Sayako_silhouette",
+      "Shinjiro Aragaki": "Shinjiro_silhouette",
+      "Shinya Oda": "Oda_silhouette",
+      "Sho Minazuki": "Sho_silhouette",
+      "Shu Nakajima": "Shu_silhouette",
+      "Sojiro Sakura": "Sojiro_silhouette",
+      "Sumire Yoshizawa": "Sumire_silhouette",
+      "Tae Takemi": "Takemi_silhouette",
+      "Takaya Sakaki": "Takaya_silhouette",
+      "Takuto Maruki": "Maruki_silhouette",
+      "Teddie": "Teddie_silhouette",
+      "Theodore": "Theodore_silhouette",
+      "Toranosuke Yoshida": "Yoshida_silhouette",
+      "Yosuke Hanamura": "Yosuke_silhouette",
+      "Yu Narukami": "Yu_silhouette",
+      "Yukari Takeba": "Yukari_silhouette",
+      "Makoto Yuki": "Yuki_silhouette",
+      "Yukiko Amagi": "Yukiko_silhouette",
+      "Yumi Ozawa": "Yumi_silhouette",
+      "Yusuke Kitagawa": "Yusuke_silhouette",
+      "Sophia": "Sophia_silhouette",
+      "Zenkichi Hasegawa": "Zenkichi_silhouette",
+      "Motoha Arai": "Arai_silhouette",
+      "Ayaka Sakai": "Ayaka_silhouette",
+      "Haruna Nishimori": "Haruna_silhouette",
+      "Aran Hirano": "Aran_silhouette",
+      "Narumi Nashimoto": "Narumi_silhouette",
+      "Kumi Katayama": "Kumi_Katayama_silhouette",
+      "Ichigo Shikano": "Ichigo_silhouette",
+      "Kayo Tomiyama": "Kayo_silhouette",
+      "Kira Kitazato": "Kira_silhouette",
+      "Kiyoshi Kurotani": "Kiyoshi_silhouette",
+      "Leo Kamiyama": "Leo_silhouette",
+      "Lufel": "Lufel_silhouette",
+      "Manaka Nagao": "Manaka_silhouette",
+      "Masaki Ashiya": "Masaki_silhouette",
+      "Mayumi Hashimoto": "Mayumi_silhouette",
+      "Merope": "Merope_silhouette",
+      "Minami Miyashita": "Minami_silhouette",
+      "Mio Natsukawa": "Mio_silhouette",
+      "Miyu Sahara": "Miyu_silhouette",
+      "Kotone Montagne": "Montagne_silhouette",
+      "Nagisa Kamishiro": "Nagisa_silhouette",
+      "Riko Tanemura": "Riko_silhouette",
+      "Runa Dogenzaka": "Runa_silhouette",
+      "Seiji Shiratori": "Seiji_silhouette",
+      "Shoki Ikenami": "Shoki_silhouette",
+      "Shun Kano": "Shun_silhouette",
+      "Tomoko Noge": "Tomoko_silhouette",
+      "Toshiya Sumi": "Toshiya_silhouette",
+      "Yaoling Li": "Yaoling_silhouette",
+      "YUI": "YUI_silhouette",
+      "Yukimi Fujikawa": "Yukimi_silhouette",
+      "Yumi Shiina": "Yumi_S_silhouette",
+      "Chizuko Nagao": "Chizuko_silhouette",
+      "Naoya Todou": "Naoya_Toudou_silhouette",
+      "Maki Sonomura": "Maki_Sonomura_silhouette",
+      "Masao Inaba": "Masao_Inaba_silhouette",
+      "Kei Nanjo": "Kei_Nanjo_silhouette",
+      "Yukino Mayuzumi": "Yukino_Mayuzumi_silhouette",
+      "Hidehiko Uesugi": "Hidehiko_Uesugi_silhouette",
+      "Eriko Kirishima": "Eriko_Kirishima_silhouette",
+      "Yuka Ayase": "Yuka_Ayase_silhouette",
+      "Reiji Kido": "Reiji_Kido_silhouette",
+      "Tatsuya Suou": "Tatsuya_silhouette",
+      "Maya Amano": "Maya_Amano_silhouette",
+      "Lisa Silverman": "Lisa_Silverman_silhouette",
+      "Jun Kurosu": "Jun_Kurosu_silhouette",
+      "Eikichi Mishina": "Eikichi_Mishina_silhouette",
+      "Baofu": "Baofu_silhouette",
+      "Katsuya Suou": "Katsuya_silhouette",
+      "Ulala Serizawa": "Ulala_silhouette",
+      "Joker": "Joker_silhouette",
+      "Izanami": "Izanami_shilouette",
+      "Nyx": "Nyx_silhouette",
+      "Yaldabaoth": "Yaldabaoth_silhouette",
+      "Erina": "Erina_silhouette",
+      "Toshiro Kasukabe": "Toshiro_silhouette",
+      "Rei": "Rei_silhouette",
+      "Zen": "Zen_silhouette",
+      "Hikari": "Hikari_silhouette",
+      "Nagi": "Nagi_silhouette",
+      "Saki Konishi": "Saki_silhouette",
+      "Mayumi Yamano": "Mayumi_Yamano_silhouette",
+      "Shin Kanzato": "Shin_Kanzato_silhouette",
+      "Jun Kanzato": "Jun_Kanzato_silhouette",
+      "Ryo Kanzato": "Ryo_Kanzato_silhouette",
+      "Aigis (P4AU)": "Aigis_P4AU_silhouette",
+      "Akihiko Sanada (P4AU)": "Akihiko_P4AU_silhouette",
+      "Fuuka Yamagishi (P4AU)": "Fuuka_P4AU_silhouette",
+      "Junpei Iori (P4AU)": "Junpei_P4AU_silhouette",
+      "Ken Amada (P4AU)": "Ken_P4AU_silhouette",
+      "Koromaru (P4AU)": "Koromaru_P4AU_silhouette",
+      "Mitsuru Kirijo (P4AU)": "Mitsuru_P4AU_silhouette",
+      "Yukari Takeba (P4AU)": "Yukari_P4AU_silhouette"
+    },
+    "opusByName": {
+      "Tohru Adachi": [
+        "P4"
+      ],
+      "Ai Ebihara": [
+        "P4"
+      ],
+      "Aigis": [
+        "P3",
+        "P3R"
+      ],
+      "Akihiko Sanada": [
+        "P3",
+        "P3R"
+      ],
+      "Ann Takamaki": [
+        "P5"
+      ],
+      "Ayane Matsunaga": [
+        "P4"
+      ],
+      "Bebe": [
+        "P3",
+        "P3R"
+      ],
+      "Bunkichi": [
+        "P3",
+        "P3R"
+      ],
+      "Caroline & Justine": [
+        "P5"
+      ],
+      "Chidori Yoshino": [
+        "P3",
+        "P3R"
+      ],
+      "Chie Satonaka": [
+        "P4"
+      ],
+      "Chihaya Mifune": [
+        "P5"
+      ],
+      "Chihiro Fushimi": [
+        "P3",
+        "P3R"
+      ],
+      "Daisuke Nagase": [
+        "P4"
+      ],
+      "Ryotaro Dojima": [
+        "P4"
+      ],
+      "Mr. Edogawa": [
+        "P3",
+        "P3R"
+      ],
+      "Elizabeth": [
+        "P3",
+        "P3R"
+      ],
+      "Eri Minami": [
+        "P4"
+      ],
+      "Fox": [
+        "P4"
+      ],
+      "Futaba Sakura": [
+        "P5"
+      ],
+      "Fuuka Yamagishi": [
+        "P3",
+        "P3R"
+      ],
+      "Goro Akechi": [
+        "P5"
+      ],
+      "Haru Okumura": [
+        "P5"
+      ],
+      "Hatsune Miku": [
+        "P4D"
+      ],
+      "Mamoru Hayase": [
+        "P3",
+        "P3R"
+      ],
+      "Hidetoshi Odagiri": [
+        "P3",
+        "P3R"
+      ],
+      "Hifumi Togo": [
+        "P5"
+      ],
+      "Hisano Kuroda": [
+        "P4"
+      ],
+      "Ichiko Ohya": [
+        "P5"
+      ],
+      "Igor": [
+        "P3",
+        "P4",
+        "P5",
+        "P3R"
+      ],
+      "Shuji Ikutsuki": [
+        "P3",
+        "P3R"
+      ],
+      "Munehisa Iwai": [
+        "P5"
+      ],
+      "Jin Shirato": [
+        "P3",
+        "P3R"
+      ],
+      "Jose": [
+        "P5"
+      ],
+      "Junpei Iori": [
+        "P3",
+        "P3R"
+      ],
+      "Kanji Tatsumi": [
+        "P4"
+      ],
+      "Kazushi Miyamoto": [
+        "P3",
+        "P3R"
+      ],
+      "Keisuke Hiraga": [
+        "P3",
+        "P3R"
+      ],
+      "Ken Amada": [
+        "P3",
+        "P3R"
+      ],
+      "Kenji Tomochika": [
+        "P3",
+        "P3R"
+      ],
+      "Koromaru": [
+        "P3",
+        "P3R"
+      ],
+      "Kotone Shiomi": [
+        "P3P",
+        "PQ2"
+      ],
+      "Kou Ichijo": [
+        "P4"
+      ],
+      "Labrys": [
+        "P4AU"
+      ],
+      "Lavenza": [
+        "P5"
+      ],
+      "Maiko Oohashi": [
+        "P3",
+        "P3R"
+      ],
+      "Makoto Niijima": [
+        "P5"
+      ],
+      "Margaret": [
+        "P4"
+      ],
+      "Marie": [
+        "P4G"
+      ],
+      "Maya": [
+        "P3",
+        "P3R"
+      ],
+      "Metis": [
+        "P3FES"
+      ],
+      "Yuuki Mishima": [
+        "P5"
+      ],
+      "Mitsuko": [
+        "P3",
+        "P3R"
+      ],
+      "Mitsuru Kirijo": [
+        "P3",
+        "P3R"
+      ],
+      "Morgana": [
+        "P5"
+      ],
+      "Mutatsu": [
+        "P3",
+        "P3R"
+      ],
+      "Nanako Dojima": [
+        "P4"
+      ],
+      "Naoki Konishi": [
+        "P4"
+      ],
+      "Naoto Shirogane": [
+        "P4"
+      ],
+      "Nozomi Suemitsu": [
+        "P3",
+        "P3R"
+      ],
+      "Pharos": [
+        "P3",
+        "P3R"
+      ],
+      "Ren Amamiya": [
+        "P5"
+      ],
+      "Rio Iwasaki": [
+        "P3P"
+      ],
+      "Rise Kujikawa": [
+        "P4"
+      ],
+      "Ryoji Mochizuki": [
+        "P3",
+        "P3R"
+      ],
+      "Ryuji Sakamoto": [
+        "P5"
+      ],
+      "Sadayo Kawakami": [
+        "P5"
+      ],
+      "Sae Niijima": [
+        "P5"
+      ],
+      "Saori Hasegawa": [
+        "P3P"
+      ],
+      "Sayako Uehara": [
+        "P4"
+      ],
+      "Shinjiro Aragaki": [
+        "P3",
+        "P3R"
+      ],
+      "Shinya Oda": [
+        "P5"
+      ],
+      "Sho Minazuki": [
+        "P4AU"
+      ],
+      "Shu Nakajima": [
+        "P4"
+      ],
+      "Sojiro Sakura": [
+        "P5"
+      ],
+      "Sumire Yoshizawa": [
+        "P5R"
+      ],
+      "Tae Takemi": [
+        "P5"
+      ],
+      "Takaya Sakaki": [
+        "P3",
+        "P3R"
+      ],
+      "Takuto Maruki": [
+        "P5R"
+      ],
+      "Teddie": [
+        "P4"
+      ],
+      "Theodore": [
+        "P3P"
+      ],
+      "Toranosuke Yoshida": [
+        "P5"
+      ],
+      "Yosuke Hanamura": [
+        "P4"
+      ],
+      "Yu Narukami": [
+        "P4"
+      ],
+      "Yukari Takeba": [
+        "P3",
+        "P3R"
+      ],
+      "Makoto Yuki": [
+        "P3",
+        "P3R"
+      ],
+      "Yukiko Amagi": [
+        "P4"
+      ],
+      "Yumi Ozawa": [
+        "P4"
+      ],
+      "Yusuke Kitagawa": [
+        "P5"
+      ],
+      "Sophia": [
+        "P5S"
+      ],
+      "Zenkichi Hasegawa": [
+        "P5S"
+      ],
+      "Motoha Arai": [
+        "P5X"
+      ],
+      "Ayaka Sakai": [
+        "P5X"
+      ],
+      "Haruna Nishimori": [
+        "P5X"
+      ],
+      "Aran Hirano": [
+        "P5X"
+      ],
+      "Narumi Nashimoto": [
+        "P5X"
+      ],
+      "Kumi Katayama": [
+        "P5X"
+      ],
+      "Ichigo Shikano": [
+        "P5X"
+      ],
+      "Kayo Tomiyama": [
+        "P5X"
+      ],
+      "Kira Kitazato": [
+        "P5X"
+      ],
+      "Kiyoshi Kurotani": [
+        "P5X"
+      ],
+      "Leo Kamiyama": [
+        "P5X"
+      ],
+      "Lufel": [
+        "P5X"
+      ],
+      "Manaka Nagao": [
+        "P5X"
+      ],
+      "Masaki Ashiya": [
+        "P5X"
+      ],
+      "Mayumi Hashimoto": [
+        "P5X"
+      ],
+      "Merope": [
+        "P5X"
+      ],
+      "Minami Miyashita": [
+        "P5X"
+      ],
+      "Mio Natsukawa": [
+        "P5X"
+      ],
+      "Miyu Sahara": [
+        "P5X"
+      ],
+      "Kotone Montagne": [
+        "P5X"
+      ],
+      "Nagisa Kamishiro": [
+        "P5X"
+      ],
+      "Riko Tanemura": [
+        "P5X"
+      ],
+      "Runa Dogenzaka": [
+        "P5X"
+      ],
+      "Seiji Shiratori": [
+        "P5X"
+      ],
+      "Shoki Ikenami": [
+        "P5X"
+      ],
+      "Shun Kano": [
+        "P5X"
+      ],
+      "Tomoko Noge": [
+        "P5X"
+      ],
+      "Toshiya Sumi": [
+        "P5X"
+      ],
+      "Yaoling Li": [
+        "P5X"
+      ],
+      "YUI": [
+        "P5X"
+      ],
+      "Yukimi Fujikawa": [
+        "P5X"
+      ],
+      "Yumi Shiina": [
+        "P5X"
+      ],
+      "Chizuko Nagao": [
+        "P5X"
+      ],
+      "Naoya Todou": [
+        "P1"
+      ],
+      "Maki Sonomura": [
+        "P1"
+      ],
+      "Masao Inaba": [
+        "P1"
+      ],
+      "Kei Nanjo": [
+        "P1"
+      ],
+      "Yukino Mayuzumi": [
+        "P1"
+      ],
+      "Hidehiko Uesugi": [
+        "P1"
+      ],
+      "Eriko Kirishima": [
+        "P1"
+      ],
+      "Yuka Ayase": [
+        "P1"
+      ],
+      "Reiji Kido": [
+        "P1"
+      ],
+      "Tatsuya Suou": [
+        "P2IS",
+        "P2EP"
+      ],
+      "Maya Amano": [
+        "P2IS",
+        "P2EP"
+      ],
+      "Lisa Silverman": [
+        "P2IS"
+      ],
+      "Jun Kurosu": [
+        "P2IS"
+      ],
+      "Eikichi Mishina": [
+        "P2IS"
+      ],
+      "Baofu": [
+        "P2EP"
+      ],
+      "Katsuya Suou": [
+        "P2IS",
+        "P2EP"
+      ],
+      "Ulala Serizawa": [
+        "P2IS",
+        "P2EP"
+      ],
+      "Joker": [
+        "P2IS"
+      ],
+      "Izanami": [
+        "P4"
+      ],
+      "Nyx": [
+        "P3",
+        "P3FES",
+        "P3P",
+        "P3R"
+      ],
+      "Yaldabaoth": [
+        "P5",
+        "P5R"
+      ],
+      "Erina": [
+        "P5T"
+      ],
+      "Toshiro Kasukabe": [
+        "P5T"
+      ],
+      "Rei": [
+        "PQ"
+      ],
+      "Zen": [
+        "PQ"
+      ],
+      "Hikari": [
+        "PQ2"
+      ],
+      "Nagi": [
+        "PQ2"
+      ],
+      "Saki Konishi": [
+        "P4",
+        "P4G"
+      ],
+      "Mayumi Yamano": [
+        "P4",
+        "P4G"
+      ],
+      "Shin Kanzato": [
+        "PTS"
+      ],
+      "Jun Kanzato": [
+        "PTS"
+      ],
+      "Ryo Kanzato": [
+        "PTS"
+      ],
+      "Aigis (P4AU)": [
+        "P4AU"
+      ],
+      "Akihiko Sanada (P4AU)": [
+        "P4AU"
+      ],
+      "Fuuka Yamagishi (P4AU)": [
+        "P4AU"
+      ],
+      "Junpei Iori (P4AU)": [
+        "P4AU"
+      ],
+      "Ken Amada (P4AU)": [
+        "P4AU"
+      ],
+      "Koromaru (P4AU)": [
+        "P4AU"
+      ],
+      "Mitsuru Kirijo (P4AU)": [
+        "P4AU"
+      ],
+      "Yukari Takeba (P4AU)": [
+        "P4AU"
+      ]
+    }
   },
   "music": {
     "pool": [
