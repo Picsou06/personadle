@@ -38,6 +38,7 @@ const { personas: aoaAutocompletePool } = await dataset(
   "allOutAttackMode/database/personas_allOut.js"
 );
 const { aoaCharacters } = await dataset("allOutAttackMode/database/aoaCharacters.js");
+const { portraitsMap: aoaPortraitsMap } = await dataset("allOutAttackMode/database/portraitsMap.js");
 const { personaeCharacters } = await dataset("personaeMode/database/personaeCharacters.js");
 const { expertLyrics } = await dataset("musicsMode/database/expert_lyrics.js");
 const expertLore = JSON.parse(
@@ -86,6 +87,12 @@ const pools = {
   alloutattack: {
     pool: aoaAutocompletePool,
     opusByName,
+    // portraitsMap, pas c.gif : c'est CE mapping qu'utilise le rendu réel
+    // (database/allOutAttack/${portraitsMap[nom]}.webp), et il corrige au passage
+    // une entrée où c.gif diverge ("Yuki_X" vs le vrai fichier "YukiX").
+    images: Object.fromEntries(
+      aoaCharacters.map((c) => [c.nom, aoaPortraitsMap[c.nom] || c.gif])
+    ),
   },
   personae: {
     // `persona` (identifiant unique de l'entrée, ex: "Orpheus ( Male )") sert au

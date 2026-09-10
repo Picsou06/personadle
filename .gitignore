@@ -1,4 +1,12 @@
 # ─────────────────────────────────────────────────────────────────────────────
+# Sortie locale des variantes AOA floutées (scripts/generate-aoa-blurred.js)
+# Jamais commitée : contrairement aux silhouettes, l'art AOA n'est pas
+# versionné dans le dépôt — il vit sur R2 (scripts/upload-aoa-blurred-r2.js).
+# ─────────────────────────────────────────────────────────────────────────────
+api/data/aoa_blurred/*
+!api/data/aoa_blurred/.htaccess
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Système d'exploitation
 # ─────────────────────────────────────────────────────────────────────────────
 .DS_Store

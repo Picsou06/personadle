@@ -3,6 +3,7 @@ import { personas as originalPersonas } from "./database/personas_allOut.js";
 import { portraitsMap } from "./database/portraitsMap.js";
 import { aoaCharacters } from "./database/aoaCharacters.js";
 import { updateProfileStats } from "../profile/profileStats.js";
+import { api } from "../js/api.js";
 
 // Shared game utilities
 import {
@@ -271,6 +272,13 @@ let personas = []; // mutable filtered list of character names
 let attempts = 0;
 let gameOver = false;
 let target = null;
+// null (défi-entre-amis, cible déjà connue localement) ; 'daily' ou 'replay'
+// (api/game/start.php + api/game/guess.php, game_id ci-dessous) — le client ne
+// connaît la cible qu'après victoire/abandon dans ces deux cas.
+let serverMode = null;
+let currentGameId = null;
+let currentPickToken = 0; // anti-race-condition, même rôle que dans modeSilhouette.js
+let guessInFlight = false;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FILTER / CHARACTER POOL
@@ -442,6 +450,79 @@ function initializeAutocomplete(element, array) {
 // GAME FLOW
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Résout et charge la cible d'une partie : défi-entre-amis (locale, comme
+ * avant), ou cible du jour/Replay server-authoritative (api/game/start.php +
+ * api/game/image.php) — dans ce dernier cas `target` reste `null` tant que la
+ * partie n'est pas gagnée/abandonnée. Met à jour `serverMode`/`currentGameId`
+ * et charge l'image, mais ne touche pas au reste de l'état de partie
+ * (attempts/UI) : c'est la responsabilité de l'appelant.
+ */
+async function pickAndLoadTarget(random) {
+  const gifElement = document.getElementById("aoaGif");
+  const challengeTargetName = getActiveChallengeTarget("alloutattack");
+  const myToken = ++currentPickToken;
+
+  if (challengeTargetName && originalPersonas.includes(challengeTargetName)) {
+    serverMode = null;
+    currentGameId = null;
+    target = challengeTargetName;
+    gifElement.style.filter = "none";
+    const imageName = portraitsMap[target] || target.split(" ")[0];
+    loadImageSafely(gifElement, cdn("allOutAttack", imageName), () => {
+      if (myToken !== currentPickToken) return;
+      gifElement.style.filter = gifFilter();
+    });
+    return;
+  }
+
+  serverMode = random ? "replay" : "daily";
+  target = null;
+  currentGameId = null;
+  try {
+    const res = await api.game.start({
+      mode: "alloutattack",
+      isExpert: EXPERT.isExpert,
+      origin: serverMode,
+      activeFilters: activeOpusFilters,
+    });
+    if (myToken !== currentPickToken) return;
+    currentGameId = res.game_id;
+    loadServerImage(currentGameId, myToken);
+  } catch (e) {
+    if (myToken !== currentPickToken) return;
+    console.error("Failed to start AOA game:", e);
+  }
+}
+
+/**
+ * Charge l'image (déjà masquée) d'une partie server-authoritative. Le flou
+ * étant déjà cuit dans les pixels côté serveur, aucun filtre CSS à appliquer
+ * ici — contrairement au chemin local, `gifFilter()` ne sert plus à rien pour
+ * ces parties.
+ */
+function loadServerImage(gameId, myToken) {
+  const gifElement = document.getElementById("aoaGif");
+  const tempImg = new Image();
+  tempImg.onload = () => {
+    if (myToken !== currentPickToken) return;
+    gifElement.style.filter = "none";
+    gifElement.src = tempImg.src;
+  };
+  tempImg.onerror = () => {
+    if (myToken !== currentPickToken) return;
+    console.error("❌ Failed to load server-side AOA image.");
+  };
+  // `_a` cache-bust la requête à chaque tentative : le flou change avec
+  // `attempts`, et Cache-Control seul ne garantit pas un refetch partout.
+  tempImg.src = `${api.game.imageUrl({ gameId })}&_a=${attempts}`;
+}
+
+/** Abandon server-authoritative : demande la révélation de la cible. */
+async function revealServerTarget() {
+  const res = await api.game.guess({ gameId: currentGameId, reveal: true });
+  target = res.target_name;
+}
 
 /**
  * Filtre CSS appliqué au GIF selon le mode et l'avancement.
@@ -468,17 +549,34 @@ function gifFilter(revealed = false) {
  *  - Correct: removes blur, shows victory box, triggers badges/stats
  *  - Wrong: increases blur slightly, shows wrong-guess portrait
  */
-function handleGuess() {
-  if (gameOver) return;
+async function handleGuess() {
+  if (gameOver || guessInFlight) return;
   const input = document.getElementById("textbar");
   const guess = input.value.trim();
   if (!guess) return;
+
+  guessInFlight = true;
+  let isCorrect;
+  try {
+    if (serverMode) {
+      const res = await api.game.guess({ gameId: currentGameId, guess });
+      isCorrect = res.correct;
+      if (res.finished) target = res.target_name;
+    } else {
+      isCorrect = guess.toLowerCase() === target.toLowerCase();
+    }
+  } catch (e) {
+    console.error("AOA guess check failed:", e);
+    guessInFlight = false;
+    return;
+  }
+  guessInFlight = false;
 
   attempts++;
   localStorage.setItem(EXPERT.key("aoaAttempts"), attempts);
   updateGiveUpCounter();
 
-  if (guess.toLowerCase() === target.toLowerCase()) {
+  if (isCorrect) {
     // ── Win ──────────────────────────────────────────────────────────────────
     // Capturé AVANT checkChallengeCompletion (qui consomme activeChallenge) :
     // une partie de défi à cible dédiée ne se logge pas en session quotidienne.
@@ -506,7 +604,11 @@ function handleGuess() {
     gameOver = true;
     localStorage.setItem(EXPERT.key("aoaGameOver"), "true");
 
-    if (!wasChallengePlay && !isGameLogged(STATS_SCOPE)) {
+    // Server-mode (daily/replay) : le serveur a déjà écrit session + stats +
+    // streak dans le même appel que la vérification de la tentative
+    // (api/lib/game_state.php::personadle_game_state_guess()) — l'écrire
+    // aussi ici les compterait deux fois.
+    if (!serverMode && !wasChallengePlay && !isGameLogged(STATS_SCOPE)) {
       const timeSpent = Math.floor((Date.now() - sessionStartTime) / 1000);
       if (!EXPERT.isExpert) updateProfileStats({ result: "win", mode: "All Out Attack", timeSpent });
       savePendingSession(
@@ -550,14 +652,28 @@ function handleGuess() {
     );
     removeFromAutocomplete(personas, guess);
 
-    document.getElementById("aoaGif").style.filter = gifFilter();
+    if (serverMode) {
+      loadServerImage(currentGameId, currentPickToken);
+    } else {
+      document.getElementById("aoaGif").style.filter = gifFilter();
+    }
     input.value = "";
   }
 }
 
 /** Give Up: reveals the GIF and shows the victory box as a defeat screen. */
-function giveUp() {
+async function giveUp() {
   if (attempts < GIVE_UP_THRESHOLD || gameOver) return;
+
+  if (serverMode) {
+    try {
+      await revealServerTarget();
+    } catch (e) {
+      console.error("AOA reveal failed:", e);
+      return;
+    }
+  }
+
   document.getElementById("aoaGif").style.filter = gifFilter(true);
   localStorage.setItem(EXPERT.key("aoaForceReveal"), "true");
   showVictoryBox(target, true);
@@ -567,8 +683,10 @@ function giveUp() {
 
   // Défi à cible dédiée : le give-up compte pour le défi (perdu) mais ne se
   // logge pas en session quotidienne. Capturé avant checkChallengeCompletion.
+  // Server-mode : même raison que dans handleGuess() — revealServerTarget()
+  // a déjà déclenché l'écriture côté serveur.
   const wasChallengePlay = isChallengePlay("alloutattack");
-  if (!wasChallengePlay && !isGameLogged(STATS_SCOPE)) {
+  if (!serverMode && !wasChallengePlay && !isGameLogged(STATS_SCOPE)) {
     const timeSpent = Math.floor((Date.now() - sessionStartTime) / 1000);
     if (!EXPERT.isExpert) updateProfileStats({ result: "giveup", mode: "All Out Attack", timeSpent });
     savePendingSession(
@@ -605,12 +723,11 @@ function giveUp() {
  * Resets the game state and loads a new character GIF.
  * Called by the Replay button, daily reset, and filter changes.
  */
-function resetGame(random = false) {
+async function resetGame(random = false) {
   sessionStartTime = Date.now();
   startGame(STATS_SCOPE);
 
   const input = document.getElementById("textbar");
-  const gifElement = document.getElementById("aoaGif");
   const wrongListEl = document.getElementById("wrongGuessList");
 
   gameOver = false;
@@ -618,17 +735,9 @@ function resetGame(random = false) {
   document.getElementById("victoryBox").style.display = "none";
 
   personas = getFilteredPersonas();
-  const newTarget = getBetterRandomCharacter(random);
-  if (!newTarget) return;
-  target = newTarget;
+  if (!personas.length) return;
 
-  gifElement.style.filter = "none";
-
-  const imageName = portraitsMap[target] || target.split(" ")[0];
-  const newSrc = cdn("allOutAttack", imageName);
-  loadImageSafely(gifElement, newSrc, () => {
-    gifElement.style.filter = gifFilter();
-  });
+  await pickAndLoadTarget(random);
 
   // Background preload of next characters
   setTimeout(() => smartPreload(personas, "low"), 800);
@@ -642,7 +751,9 @@ function resetGame(random = false) {
   initializeAutocomplete(input, personas);
   updateGiveUpCounter();
 
-  localStorage.setItem(EXPERT.key("aoaTarget"), target);
+  localStorage.setItem(EXPERT.key("aoaServerMode"), serverMode ?? "");
+  localStorage.setItem(EXPERT.key("aoaGameId"), currentGameId != null ? String(currentGameId) : "");
+  localStorage.setItem(EXPERT.key("aoaTarget"), serverMode ? "" : target);
   localStorage.setItem(EXPERT.key("aoaAttempts"), attempts);
   localStorage.removeItem(EXPERT.key("aoaGameOver"));
 
@@ -823,24 +934,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   gifElement?.addEventListener("dragstart", (e) => e.preventDefault());
 
   // ── Filtre opus — panneau déroulant ──
-  const _filterApi = initFilterMenu("filters_AllOutAttack", ALL_OPUS, (newActive) => {
+  const _filterApi = initFilterMenu("filters_AllOutAttack", ALL_OPUS, async (newActive) => {
     activeOpusFilters = newActive;
     if (newActive.length === 0) return;
     personas = getFilteredPersonas();
 
     if (!personas.length) return;
 
-    target = getBetterRandomCharacter();
-    const imageName = portraitsMap[target] || target.split(" ")[0];
-    gifElement.style.filter = "none";
-    loadImageSafely(gifElement, cdn("allOutAttack", imageName), () => {
-      gifElement.style.filter = gifFilter();
-    });
-
     attempts = 0;
+    await pickAndLoadTarget(false);
+
     document.getElementById("wrongGuessList").innerHTML = "";
     document.getElementById("victoryBox").style.display = "none";
-    localStorage.setItem(EXPERT.key("aoaTarget"), target);
+    localStorage.setItem(EXPERT.key("aoaServerMode"), serverMode ?? "");
+    localStorage.setItem(EXPERT.key("aoaGameId"), currentGameId != null ? String(currentGameId) : "");
+    localStorage.setItem(EXPERT.key("aoaTarget"), serverMode ? "" : target);
     localStorage.setItem(EXPERT.key("aoaAttempts"), 0);
     localStorage.removeItem(EXPERT.key("aoaGameOver"));
     updateGiveUpCounter();
@@ -867,20 +975,35 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ── Restore session ──
   const savedTarget = localStorage.getItem(EXPERT.key("aoaTarget"));
+  const savedServerMode = localStorage.getItem(EXPERT.key("aoaServerMode")) || null;
+  const savedGameId = parseInt(localStorage.getItem(EXPERT.key("aoaGameId"))) || null;
   const savedAttempts = parseInt(localStorage.getItem(EXPERT.key("aoaAttempts"))) || 0;
   const savedGameOver = localStorage.getItem(EXPERT.key("aoaGameOver")) === "true";
 
-  if (savedTarget) {
+  if (!savedTarget && savedServerMode && savedGameId && !savedGameOver) {
+    // Partie server-authoritative en cours : re-demander la même image (le
+    // game_id est déterministe) plutôt que de re-choisir une cible.
+    serverMode = savedServerMode;
+    currentGameId = savedGameId;
+    attempts = savedAttempts;
+    loadServerImage(currentGameId, ++currentPickToken);
+    updateGiveUpCounter();
+    if (attempts >= GIVE_UP_THRESHOLD) setGiveUpEnabled(true);
+  } else if (savedTarget) {
+    serverMode = savedServerMode;
+    currentGameId = savedGameId;
     target = savedTarget;
     attempts = savedAttempts;
     gameOver = savedGameOver;
 
-    const imageName = portraitsMap[target] || target.split(" ")[0];
-    loadImageSafely(gifElement, cdn("allOutAttack", imageName), () => {
-      gifElement.style.filter = gameOver
-        ? "none"
-        : gifFilter();
-    });
+    if (serverMode) {
+      loadServerImage(currentGameId, ++currentPickToken);
+    } else {
+      const imageName = portraitsMap[target] || target.split(" ")[0];
+      loadImageSafely(gifElement, cdn("allOutAttack", imageName), () => {
+        gifElement.style.filter = gameOver ? "none" : gifFilter();
+      });
+    }
 
     updateGiveUpCounter();
 
@@ -898,13 +1021,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       setGiveUpEnabled(true);
     }
   } else {
-    target = getBetterRandomCharacter();
-    const imageName = portraitsMap[target] || target.split(" ")[0];
-    gifElement.style.filter = "none";
-    loadImageSafely(gifElement, cdn("allOutAttack", imageName), () => {
-      gifElement.style.filter = gifFilter();
-    });
-    localStorage.setItem(EXPERT.key("aoaTarget"), target);
+    await pickAndLoadTarget(false);
+    localStorage.setItem(EXPERT.key("aoaServerMode"), serverMode ?? "");
+    localStorage.setItem(EXPERT.key("aoaGameId"), currentGameId != null ? String(currentGameId) : "");
+    localStorage.setItem(EXPERT.key("aoaTarget"), serverMode ? "" : target);
     localStorage.setItem(EXPERT.key("aoaAttempts"), 0);
   }
 
@@ -913,6 +1033,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("giveUpButton").addEventListener("click", giveUp);
   document.getElementById("resetButton").addEventListener("click", () => {
     localStorage.removeItem(EXPERT.key("aoaTarget"));
+    localStorage.removeItem(EXPERT.key("aoaServerMode"));
+    localStorage.removeItem(EXPERT.key("aoaGameId"));
     localStorage.removeItem(EXPERT.key("aoaAttempts"));
     localStorage.removeItem(EXPERT.key("aoaGameOver"));
     localStorage.removeItem(EXPERT.key("aoaForceReveal"));

@@ -1,17 +1,20 @@
 <?php
 /**
- * GET /api/game/image — Sert l'image (déjà noircie) associée à une partie
+ * GET /api/game/image — Sert l'image (déjà masquée) associée à une partie
  * démarrée via POST /api/game/start.
  * ────────────────────────────────────────────────────────────────────────────
- * Comme api/game/silhouette-image.php (cible du jour), mais adressé par
- * `game_id` plutôt que par (date, seed) — sert n'importe quelle partie de la
- * table game_states (aujourd'hui : origin='replay' uniquement, mode
- * Silhouette). Le nom du personnage ne quitte jamais ce endpoint.
+ * Adressé par `game_id`, jamais par nom de personnage. La source dépend du
+ * mode (personadle_game_state_image_source(), api/lib/game_state.php) :
+ *   - silhouette : fichier local pré-noirci (déjà dans le dépôt)
+ *   - alloutattack : variante floutée sur R2, sous clé opaque — le serveur la
+ *     récupère lui-même et la restreame, l'URL R2 n'est jamais renvoyée au
+ *     client. Le flou dépend des tentatives déjà faites sur CETTE partie
+ *     (recalculé ici, jamais fourni par le client).
  *
  * Query params :
  *   game_id : int — renvoyé par /api/game/start
  *
- * Réponse : image/webp en clair, ou 400/404/500 JSON en cas d'erreur.
+ * Réponse : image/webp en clair, ou 400/404/500/501 JSON en cas d'erreur.
  */
 
 require_once __DIR__ . '/../bootstrap.php';
@@ -31,27 +34,53 @@ if ($gameId <= 0) {
 $identity = personadle_game_state_identity();
 $row = personadle_game_state_load(pdo(), $gameId, $identity);
 
-if ($row['mode'] !== 'silhouette') {
-    jsonError('This mode has no server-side image yet', 501);
+$source = personadle_game_state_image_source($row);
+if ($source === null) {
+    jsonError("Mode '{$row['mode']}' has no server-side image yet", 501);
 }
 
-$pools = personadle_load_daily_pools();
-$imageBasename = $pools['silhouette']['images'][$row['target_name']] ?? null;
-if ($imageBasename === null) {
-    jsonError('Image unavailable', 500);
+if ($source['type'] === 'file') {
+    if (!is_file($source['location'])) {
+        personadle_log_error(pdo(), 'error', 'Missing pre-generated game image', [
+            'source' => 'game-image',
+            'mode'   => $row['mode'],
+            'path'   => $source['location'],
+        ]);
+        jsonError('Image unavailable', 500);
+    }
+
+    header('Content-Type: image/webp');
+    header("Cache-Control: {$source['cacheControl']}");
+    header('Content-Length: ' . filesize($source['location']));
+    readfile($source['location']);
+    exit;
 }
 
-$path = __DIR__ . '/../data/silhouette_blackened/' . $imageBasename . '.webp';
-if (!is_file($path)) {
-    personadle_log_error(pdo(), 'error', 'Missing pre-blackened silhouette', [
+// type === 'remote' : le serveur va chercher l'image sur R2 lui-même — le
+// client ne voit jamais cette URL.
+$ch = curl_init($source['location']);
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT        => 5,
+    CURLOPT_FOLLOWLOCATION => false,
+]);
+$body = curl_exec($ch);
+$status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$curlError = curl_error($ch);
+curl_close($ch);
+
+if ($body === false || $status !== 200) {
+    personadle_log_error(pdo(), 'error', 'Failed to fetch remote game image', [
         'source' => 'game-image',
-        'image'  => $imageBasename,
+        'mode'   => $row['mode'],
+        'status' => $status,
+        'error'  => $curlError,
     ]);
     jsonError('Image unavailable', 500);
 }
 
 header('Content-Type: image/webp');
-header('Cache-Control: private, max-age=3600');
-header('Content-Length: ' . filesize($path));
-readfile($path);
+header("Cache-Control: {$source['cacheControl']}");
+header('Content-Length: ' . strlen($body));
+echo $body;
 exit;

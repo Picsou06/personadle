@@ -55,6 +55,14 @@ function personadle_game_state_filter_pool(array $pool, array $opusByName, array
 }
 
 /**
+ * Modes couverts par le tirage server-authoritative de personadle_game_state_start()
+ * (image proxifiée + comparaison de nom, pas de grille d'attributs) — chacun a
+ * son propre pool/carte d'images dans daily_pools.json, générés à partir de la
+ * même clé que celle utilisée ici.
+ */
+const PERSONADLE_GAME_STATE_MODES = ['silhouette', 'alloutattack'];
+
+/**
  * Démarre une partie et choisit sa cible côté serveur — jamais renvoyée à
  * l'appelant, qui n'a que le game_id.
  *
@@ -68,7 +76,7 @@ function personadle_game_state_start(
     string $origin,
     array $activeFilters
 ): array {
-    if ($mode !== 'silhouette') {
+    if (!in_array($mode, PERSONADLE_GAME_STATE_MODES, true)) {
         jsonError("Mode '$mode' is not yet server-authoritative for game_states", 501);
     }
     if ($origin !== 'replay') {
@@ -76,9 +84,9 @@ function personadle_game_state_start(
     }
 
     $pools = personadle_load_daily_pools();
-    $pool = $pools['silhouette']['pool'] ?? [];
-    $images = $pools['silhouette']['images'] ?? [];
-    $opusByName = $pools['silhouette']['opusByName'] ?? [];
+    $pool = $pools[$mode]['pool'] ?? [];
+    $images = $pools[$mode]['images'] ?? [];
+    $opusByName = $pools[$mode]['opusByName'] ?? [];
 
     $filteredPool = personadle_game_state_filter_pool($pool, $opusByName, $activeFilters);
     if (empty($filteredPool)) {
@@ -104,6 +112,67 @@ function personadle_game_state_start(
     ]);
 
     return ['game_id' => (int) $pdo->lastInsertId()];
+}
+
+/** Même formule que blurLevelForAttempts() (scripts/generate-aoa-blurred.js). */
+function personadle_aoa_blur_level(int $attempts): int
+{
+    return max(20 - 3 * min($attempts, 7), 0);
+}
+
+/**
+ * Clé d'objet R2 opaque pour une variante AOA floutée — même calcul que
+ * r2Key() (scripts/upload-aoa-blurred-r2.js). AOA_R2_BLUR_SALT ne doit exister
+ * QUE côté serveur (api/config.php, jamais commité) : c'est lui qui empêche de
+ * retrouver la clé d'un personnage sans avoir aussi ce secret.
+ */
+function personadle_aoa_r2_key(string $imageName, string $suffix): string
+{
+    return hash_hmac('sha256', "aoa:$imageName:$suffix", AOA_R2_BLUR_SALT);
+}
+
+/**
+ * Résout la source de l'image à streamer pour une ligne game_states : un
+ * fichier local (Silhouette, déjà dans le dépôt) ou une URL R2 à récupérer
+ * côté serveur (AOA, jamais versionné — voir scripts/upload-aoa-blurred-r2.js).
+ * Cache-Control diffère aussi : une silhouette ne change jamais pendant la
+ * partie, un flou AOA change à chaque tentative — le cacher longtemps
+ * servirait un flou périmé après un guess.
+ *
+ * @return array{type: 'file'|'remote', location: string, cacheControl: string}|null
+ *         null si le mode n'a pas encore d'image server-authoritative, ou si
+ *         AOA_R2_BLUR_BASE_URL n'est pas configuré.
+ */
+function personadle_game_state_image_source(array $row): ?array
+{
+    $pools = personadle_load_daily_pools();
+    $basename = $pools[$row['mode']]['images'][$row['target_name']] ?? null;
+    if ($basename === null) {
+        return null;
+    }
+
+    if ($row['mode'] === 'silhouette') {
+        return [
+            'type'         => 'file',
+            'location'     => __DIR__ . '/../data/silhouette_blackened/' . $basename . '.webp',
+            'cacheControl' => 'private, max-age=3600',
+        ];
+    }
+
+    if ($row['mode'] === 'alloutattack') {
+        if (!defined('AOA_R2_BLUR_BASE_URL') || !defined('AOA_R2_BLUR_SALT')) {
+            return null;
+        }
+        $suffix = $row['is_expert'] ? 'expert' : (string) personadle_aoa_blur_level((int) $row['attempts']);
+        $key = personadle_aoa_r2_key($basename, $suffix);
+        return [
+            'type'         => 'remote',
+            'location'     => AOA_R2_BLUR_BASE_URL . $key . '.webp',
+            'cacheControl' => 'private, no-cache',
+        ];
+    }
+
+    return null;
 }
 
 /**
