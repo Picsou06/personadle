@@ -9,7 +9,7 @@
 # Apache : mod_rewrite activé pour les URLs propres de l'API REST,
 #          mod_headers activé pour le Content-Security-Policy des pages HTML (.htaccess racine).
 
-FROM php:8.3-apache
+FROM php:8.3.36-apache
 
 # Installer les extensions PDO + utilitaires
 RUN apt-get update && apt-get install -y \
